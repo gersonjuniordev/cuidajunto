@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, setAuthToken } from "@/api/client";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Login({ onDone }) {
+  const { refresh } = useAuth();
   const [mode, setMode] = useState("login"); // login | register
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -23,6 +25,7 @@ export default function Login({ onDone }) {
           ? await api.auth.register({ email, password, name })
           : await api.auth.login({ email, password });
       setAuthToken(res.token);
+      await refresh();
       onDone?.();
     } catch (err) {
       setError(err?.message || "Falha ao autenticar");

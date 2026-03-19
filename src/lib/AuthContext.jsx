@@ -8,19 +8,22 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
+  const refresh = async () => {
+    setIsLoadingAuth(true);
+    try {
+      const u = await api.auth.me();
+      setUser(u);
+      setIsAuthenticated(true);
+    } catch {
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const u = await api.auth.me();
-        setUser(u);
-        setIsAuthenticated(true);
-      } catch {
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoadingAuth(false);
-      }
-    };
-    load();
+    refresh();
   }, []);
 
   const logout = async () => {
@@ -37,6 +40,7 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     isLoadingAuth,
+    refresh,
     logout,
   };
 

@@ -20,21 +20,16 @@ import { api } from '@/api/client';
 import { useState, useEffect } from 'react';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isAuthenticated } = useAuth();
-  const [me, setMe] = useState(null);
+  const { isLoadingAuth, isAuthenticated, user } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState(null);
-
-  useEffect(() => {
-    api.auth.me().then(setMe).catch(() => {});
-  }, []);
 
   const { data: children, isLoading: loadingChildren } = useQuery({
     queryKey: ["children_onboarding"],
     queryFn: () => api.children.list(),
-    enabled: !!me,
+    enabled: !!user,
   });
 
-  if (isLoadingAuth || (me && loadingChildren)) {
+  if (isLoadingAuth || (user && loadingChildren)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -43,14 +38,14 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated) {
-    return <Login onDone={() => api.auth.me().then(setMe).catch(() => {})} />;
+    return <Login />;
   }
 
   // Se não tem crianças cadastradas e onboarding não foi concluído nesta sessão, mostra onboarding
-  const needsOnboarding = me && children && children.length === 0 && onboardingDone !== true;
+  const needsOnboarding = user && children && children.length === 0 && onboardingDone !== true;
 
   if (needsOnboarding) {
-    return <Onboarding me={me} onComplete={() => setOnboardingDone(true)} />;
+    return <Onboarding me={user} onComplete={() => setOnboardingDone(true)} />;
   }
 
   // Render the main app
