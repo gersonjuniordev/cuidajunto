@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
@@ -19,6 +20,44 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM;
+const SMTP_SECURE =
+  process.env.SMTP_SECURE === "true" || process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "yes";
+
+function requireSmtpConfig() {
+  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) return false;
+  return true;
+}
+
+async function sendEmailViaSmtp({ to, subject, text }) {
+  if (!requireSmtpConfig()) {
+    throw new Error("SMTP não configurado (adicione SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS no server).");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE, // true se porta 465
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+
+  const from = SMTP_FROM || SMTP_USER;
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject,
+    text: text || "",
+  });
+}
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -669,11 +708,20 @@ app.post("/api/files/upload", upload.single("file"), (req, res) => {
   res.status(201).json({ file_url: fileUrl });
 });
 
-// ---- EMAIL (stub) ----
-app.post("/api/send-email", (req, res) => {
-  const { to, subject } = req.body;
-  console.log("Pretend sending email to", to, "with subject", subject);
-  res.status(204).end();
+// ---- EMAIL via SMTP ----
+app.post("/api/send-email", async (req, res) => {
+  try {
+    const { to, subject, body } = req.body || {};
+    if (!to) return res.status(400).json({ error: "Campo 'to' é obrigatório" });
+    if (!subject) return res.status(400).json({ error: "Campo 'subject' é obrigatório" });
+
+    // O front envia `body` como texto puro.
+    await sendEmailViaSmtp({ to, subject, text: body });
+    res.status(204).end();
+  } catch (e) {
+    console.error("Failed to send email:", e?.message || e);
+    res.status(500).json({ error: "Failed to send email" });
+  }
 });
 
 app.listen(PORT, () => {
