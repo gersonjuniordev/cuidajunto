@@ -1,0 +1,39 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID da conversa"
+    },
+    "text": {
+      "type": "string",
+      "description": "Texto da mensagem"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email do remetente"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Nome do remetente"
+    },
+    "linked_task_id": {
+      "type": "string",
+      "description": "ID da tarefa vinculada (opcional)"
+    },
+    "linked_event_id": {
+      "type": "string",
+      "description": "ID do evento vinculado (opcional)"
+    },
+    "child_id": {
+      "type": "string",
+      "description": "ID da crian\u00e7a relacionada (opcional)"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "text",
+    "sender_email"
+  ]
+}

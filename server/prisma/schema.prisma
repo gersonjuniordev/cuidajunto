@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  passwordHash String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  children  Child[]  @relation("ChildOwner")
+}
+
+model Child {
+  id              String    @id @default(uuid())
+  name            String
+  birthDate       DateTime?
+  photoUrl        String?
+  bloodType       String?
+  allergies       String?
+  notes           String?
+  inviteCode      String?   @unique
+  ownerEmail      String?
+  caregiverEmails String[]
+
+  owner     User?      @relation("ChildOwner", fields: [ownerEmail], references: [email])
+  tasks     Task[]
+  events    Event[]
+  meds      Medication[]
+  medLogs   MedicationLog[]
+  documents Document[]
+  chats     Conversation[]
+  messages  Message[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  childId     String?
+  dueDate     DateTime?
+  status      String   @default("pendente")
+  priority    String   @default("media")
+  assignedTo  String?
+
+  child       Child?   @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Medication {
+  id           String          @id @default(uuid())
+  name         String
+  childId      String
+  dosage       String
+  frequency    String?
+  startDate    DateTime?
+  endDate      DateTime?
+  instructions String?
+  active       Boolean         @default(true)
+
+  child        Child           @relation(fields: [childId], references: [id])
+  logs         MedicationLog[]
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model MedicationLog {
+  id            String      @id @default(uuid())
+  medicationId  String
+  childId       String
+  administeredAt DateTime?
+  administeredBy String?
+  notes         String?
+
+  medication    Medication  @relation(fields: [medicationId], references: [id])
+  child         Child       @relation(fields: [childId], references: [id])
+
+  createdAt     DateTime    @default(now())
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  childId     String?
+  date        DateTime?
+  time        String?
+  category    String?
+  location    String?
+  responsible String?
+
+  child       Child?   @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  title      String
+  childId    String
+  category   String?
+  fileUrl    String
+  expiryDate DateTime?
+  notes      String?
+
+  child      Child    @relation(fields: [childId], references: [id])
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  title         String
+  participants  String[]
+  childId       String?
+  lastMessage   String?
+  lastMessageAt DateTime?
+  lastMessageBy String?
+
+  child         Child?    @relation(fields: [childId], references: [id])
+  messages      Message[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Message {
+  id            String    @id @default(uuid())
+  conversationId String
+  text          String
+  senderEmail   String
+  senderName    String?
+  linkedTaskId  String?
+  linkedEventId String?
+  childId       String?
+
+  conversation  Conversation @relation(fields: [conversationId], references: [id])
+  child         Child?       @relation(fields: [childId], references: [id])
+
+  createdAt     DateTime  @default(now())
+}
+

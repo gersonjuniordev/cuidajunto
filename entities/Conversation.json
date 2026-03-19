@@ -1,0 +1,36 @@
+{
+  "name": "Conversation",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da conversa"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de emails dos participantes"
+    },
+    "child_id": {
+      "type": "string",
+      "description": "Crian\u00e7a relacionada \u00e0 conversa"
+    },
+    "last_message": {
+      "type": "string",
+      "description": "Pr\u00e9via da \u00faltima mensagem"
+    },
+    "last_message_at": {
+      "type": "string",
+      "description": "Data/hora da \u00faltima mensagem"
+    },
+    "last_message_by": {
+      "type": "string",
+      "description": "Email de quem enviou a \u00faltima mensagem"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "Medication",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do medicamento"
+    },
+    "child_id": {
+      "type": "string",
+      "description": "ID da crian\u00e7a"
+    },
+    "dosage": {
+      "type": "string",
+      "description": "Dosagem (ex: 5ml, 1 comprimido)"
+    },
+    "frequency": {
+      "type": "string",
+      "description": "Frequ\u00eancia (ex: 8 em 8 horas)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de in\u00edcio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de t\u00e9rmino"
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Instru\u00e7\u00f5es especiais"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Medicamento ativo"
+    }
+  },
+  "required": [
+    "name",
+    "child_id",
+    "dosage"
+  ]
+}

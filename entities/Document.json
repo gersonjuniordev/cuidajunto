@@ -1,0 +1,45 @@
+{
+  "name": "Document",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do documento"
+    },
+    "child_id": {
+      "type": "string",
+      "description": "ID da crian\u00e7a"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "identidade",
+        "certidao_nascimento",
+        "plano_saude",
+        "carteira_vacinacao",
+        "escolar",
+        "judicial",
+        "outro"
+      ],
+      "description": "Tipo de documento"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL do arquivo"
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de validade"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "title",
+    "child_id",
+    "file_url"
+  ]
+}

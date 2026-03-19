@@ -1,0 +1,59 @@
+{
+  "name": "Child",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome completo da crian\u00e7a"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de nascimento"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Foto da crian\u00e7a"
+    },
+    "blood_type": {
+      "type": "string",
+      "enum": [
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "AB+",
+        "AB-",
+        "O+",
+        "O-"
+      ],
+      "description": "Tipo sangu\u00edneo"
+    },
+    "allergies": {
+      "type": "string",
+      "description": "Alergias conhecidas"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es gerais"
+    },
+    "invite_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico de convite para cuidadores"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Email do respons\u00e1vel titular que cadastrou a crian\u00e7a"
+    },
+    "caregiver_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de emails dos cuidadores com acesso"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
