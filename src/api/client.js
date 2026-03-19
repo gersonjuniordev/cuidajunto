@@ -68,6 +68,22 @@ export const api = {
     delete: (id) =>
       request(`/api/events/${id}`, { method: "DELETE" }),
   },
+  dailyReports: {
+    get: (childId, date) =>
+      request(
+        `/api/daily-reports?${[
+          childId ? `child_id=${encodeURIComponent(childId)}` : "",
+          date ? `date=${encodeURIComponent(date)}` : "",
+        ]
+          .filter(Boolean)
+          .join("&")}`
+      ),
+    upsert: (data) =>
+      request("/api/daily-reports/upsert", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
   medications: {
     list: (limit, active) =>
       request(

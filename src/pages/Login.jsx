@@ -41,7 +41,7 @@ export default function Login({ onDone }) {
           <div className="w-14 h-14 bg-teal-100 rounded-2xl flex items-center justify-center mx-auto">
             <Baby className="w-7 h-7 text-teal-600" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900">CuidaJuntos</h1>
+          <h1 className="text-xl font-bold text-slate-900">CuidaJunto</h1>
           <p className="text-sm text-slate-500">
             {mode === "register" ? "Crie sua conta" : "Entre para continuar"}
           </p>

@@ -26,7 +26,7 @@ function StepChoose({ onTitular, onCodigo }) {
         <div className="w-16 h-16 bg-teal-100 rounded-2xl flex items-center justify-center mx-auto">
           <Baby className="w-8 h-8 text-teal-600" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Bem-vindo ao CuidaJuntos</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Bem-vindo ao CuidaJunto</h1>
         <p className="text-sm text-slate-500">Como você deseja entrar?</p>
       </div>
 
@@ -362,10 +362,10 @@ export default function Onboarding({ me, onComplete }) {
       });
       created.push(c);
 
-      await api.emails.send({
+        await api.emails.send({
         to: me?.email,
-        subject: `CuidaJuntos — Código de convite de ${child.name}`,
-        body: `Olá ${responsavelData?.name || me?.full_name}!\n\nO código de convite para ${child.name} é:\n\n🔑 ${code}\n\nCompartilhe este código com os cuidadores de ${child.name} para que eles possam acessar o perfil.\n\nEquipe CuidaJuntos`,
+        subject: `CuidaJunto — Código de convite de ${child.name}`,
+        body: `Olá ${responsavelData?.name || me?.full_name}!\n\nO código de convite para ${child.name} é:\n\n🔑 ${code}\n\nCompartilhe este código com os cuidadores de ${child.name} para que eles possam acessar o perfil.\n\nEquipe CuidaJunto`,
       });
     }
 

@@ -30,6 +30,13 @@ model Child {
   ownerEmail      String?
   caregiverEmails String[]
 
+  // Convivência (pais separados)
+  parentAName  String?
+  parentADays  String[]
+  parentBName  String?
+  parentBDays  String[]
+  custodyNotes String?
+
   owner     User?      @relation("ChildOwner", fields: [ownerEmail], references: [email])
   tasks     Task[]
   events    Event[]
@@ -38,6 +45,7 @@ model Child {
   documents Document[]
   chats     Conversation[]
   messages  Message[]
+  dailyReports DailyReport[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -153,5 +161,20 @@ model Message {
   child         Child?       @relation(fields: [childId], references: [id])
 
   createdAt     DateTime  @default(now())
+}
+
+model DailyReport {
+  id          String   @id @default(uuid())
+  childId     String
+  date        DateTime
+  reportText String
+  mood        String?
+
+  child       Child    @relation(fields: [childId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([childId, date], name: "childId_date")
 }
 

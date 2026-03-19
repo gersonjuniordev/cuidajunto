@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, parseISO, getDay } from "date-fns";
@@ -41,6 +41,7 @@ export default function Agenda() {
   const [showForm, setShowForm] = useState(false);
   const [childFilter, setChildFilter] = useState("all");
   const [formData, setFormData] = useState({});
+  const [reportText, setReportText] = useState("");
   const queryClient = useQueryClient();
 
   const { children, me } = useAccessibleChildren();
@@ -66,6 +67,33 @@ export default function Agenda() {
   });
 
   const filteredEvents = childFilter === "all" ? events : events.filter(e => e.child_id === childFilter);
+
+  const selectedChildId = childFilter === "all" ? null : childFilter;
+  const selectedDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
+
+  const {
+    data: dailyReport,
+    refetch: refetchDailyReport,
+  } = useQuery({
+    queryKey: ["daily_report", selectedChildId, selectedDateStr],
+    queryFn: () => {
+      if (!selectedChildId || !selectedDateStr) return Promise.resolve(null);
+      return api.dailyReports.get(selectedChildId, selectedDateStr);
+    },
+    enabled: !!selectedChildId && !!selectedDateStr,
+  });
+
+  useEffect(() => {
+    setReportText(dailyReport?.report_text || "");
+  }, [dailyReport, selectedChildId, selectedDateStr]);
+
+  const upsertDailyReport = useMutation({
+    mutationFn: (payload) => api.dailyReports.upsert(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily_report", selectedChildId, selectedDateStr] });
+      refetchDailyReport();
+    },
+  });
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -163,38 +191,78 @@ export default function Agenda() {
             </h3>
             {!selectedDate ? (
               <p className="text-sm text-slate-400 text-center py-8">Clique em um dia no calendário</p>
-            ) : selectedDayEvents.length === 0 ? (
-              <EmptyState icon={Calendar} title="Sem eventos" description="Nenhum evento neste dia" />
             ) : (
-              <div className="space-y-3">
-                {selectedDayEvents.map(event => (
-                  <div key={event.id} className="p-3 rounded-xl bg-slate-50 group">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">{event.title}</p>
-                        {event.time && (
-                          <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
-                            <Clock className="w-3 h-3" /> {event.time}
-                          </p>
-                        )}
-                        {event.location && (
-                          <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {event.location}
-                          </p>
+              <div className="space-y-5">
+                {selectedDayEvents.length === 0 ? (
+                  <EmptyState icon={Calendar} title="Sem eventos" description="Nenhum evento neste dia" />
+                ) : (
+                  <div className="space-y-3">
+                    {selectedDayEvents.map(event => (
+                      <div key={event.id} className="p-3 rounded-xl bg-slate-50 group">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-slate-800">{event.title}</p>
+                            {event.time && (
+                              <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                                <Clock className="w-3 h-3" /> {event.time}
+                              </p>
+                            )}
+                            {event.location && (
+                              <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3" /> {event.location}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => deleteEvent.mutate(event.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          </button>
+                        </div>
+                        {event.category && (
+                          <Badge variant="secondary" className="mt-2 text-[10px]">{categoryLabels[event.category]}</Badge>
                         )}
                       </div>
-                      <button
-                        onClick={() => deleteEvent.mutate(event.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                      </button>
-                    </div>
-                    {event.category && (
-                      <Badge variant="secondary" className="mt-2 text-[10px]">{categoryLabels[event.category]}</Badge>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
+
+                <div className="pt-4 border-t border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-3">Relatório do dia</h4>
+
+                  {!selectedChildId ? (
+                    <p className="text-sm text-slate-400">
+                      Selecione uma criança acima para preencher o relatório.
+                    </p>
+                  ) : (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        upsertDailyReport.mutate({
+                          child_id: selectedChildId,
+                          date: selectedDateStr,
+                          report_text: reportText,
+                        });
+                      }}
+                      className="space-y-3"
+                    >
+                      <Textarea
+                        value={reportText}
+                        onChange={(e) => setReportText(e.target.value)}
+                        placeholder="Descreva o dia da criança (ex.: alimentação, sono, humor, atividades, observações)..."
+                        className="min-h-[120px]"
+                      />
+                      <Button
+                        type="submit"
+                        className="w-full bg-teal-600 hover:bg-teal-700"
+                        disabled={upsertDailyReport.isPending}
+                      >
+                        {upsertDailyReport.isPending ? "Salvando..." : "Salvar relatório"}
+                      </Button>
+                    </form>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

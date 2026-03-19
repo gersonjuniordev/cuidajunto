@@ -39,7 +39,7 @@ export default function Layout() {
         <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2">
           <Menu className="w-5 h-5 text-slate-700" />
         </button>
-        <span className="text-base font-semibold text-teal-700 tracking-tight">CuidaJuntos</span>
+        <span className="text-base font-semibold text-teal-700 tracking-tight">CuidaJunto</span>
         <NotificationBell />
       </header>
 
@@ -51,7 +51,7 @@ export default function Layout() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-8">
-              <span className="text-lg font-bold text-teal-700">CuidaJuntos</span>
+              <span className="text-lg font-bold text-teal-700">CuidaJunto</span>
               <button onClick={() => setMobileOpen(false)}>
                 <X className="w-5 h-5 text-slate-400" />
               </button>
@@ -93,7 +93,7 @@ export default function Layout() {
         <div className="p-6 pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-teal-700 tracking-tight">CuidaJuntos</h1>
+              <h1 className="text-xl font-bold text-teal-700 tracking-tight">CuidaJunto</h1>
               <p className="text-xs text-slate-400 mt-0.5">Agenda Familiar Compartilhada</p>
             </div>
             <NotificationBell />

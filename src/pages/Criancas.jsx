@@ -87,6 +87,27 @@ export default function Criancas() {
 
   const avatarColors = ["bg-teal-100 text-teal-700", "bg-violet-100 text-violet-700", "bg-rose-100 text-rose-700", "bg-amber-100 text-amber-700"];
 
+  const custodyDays = [
+    { key: "seg", label: "Seg" },
+    { key: "ter", label: "Ter" },
+    { key: "qua", label: "Qua" },
+    { key: "qui", label: "Qui" },
+    { key: "sex", label: "Sex" },
+    { key: "sab", label: "Sáb" },
+    { key: "dom", label: "Dom" },
+  ];
+
+  const toggleCustodyDay = (fieldKey, dayKey) => {
+    setFormData((prev) => {
+      const list = Array.isArray(prev?.[fieldKey]) ? prev[fieldKey] : [];
+      const has = list.includes(dayKey);
+      return {
+        ...prev,
+        [fieldKey]: has ? list.filter((d) => d !== dayKey) : [...list, dayKey],
+      };
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -99,7 +120,7 @@ export default function Criancas() {
                 <Link2 className="w-4 h-4 mr-2" /> Entrar por Código
               </Button>
             </Link>
-            <Button onClick={() => { setFormData({}); setEditingChild(null); setShowForm(true); }} className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => { setFormData({ parent_a_days: [], parent_b_days: [] }); setEditingChild(null); setShowForm(true); }} className="bg-teal-600 hover:bg-teal-700">
               <Plus className="w-4 h-4 mr-2" /> Adicionar Criança
             </Button>
           </div>
@@ -112,7 +133,7 @@ export default function Criancas() {
           title="Nenhuma criança cadastrada"
           description="Cadastre as crianças para começar a organizar a agenda familiar"
           action={
-            <Button onClick={() => setShowForm(true)} className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => { setFormData({ parent_a_days: [], parent_b_days: [] }); setShowForm(true); }} className="bg-teal-600 hover:bg-teal-700">
               <Plus className="w-4 h-4 mr-2" /> Adicionar Criança
             </Button>
           }
@@ -230,6 +251,70 @@ export default function Criancas() {
             <div>
               <Label>Observações</Label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData({...formData, notes: e.target.value})} />
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <div className="text-sm font-semibold text-slate-900 mb-2">Convivência (pais separados)</div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome do responsável 1</Label>
+                  <Input
+                    value={formData.parent_a_name || ""}
+                    onChange={(e) => setFormData({ ...formData, parent_a_name: e.target.value })}
+                    placeholder="Ex: João da Silva"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {custodyDays.map((d) => (
+                      <label
+                        key={d.key}
+                        className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-teal-200 text-teal-600"
+                          checked={(formData.parent_a_days || []).includes(d.key)}
+                          onChange={() => toggleCustodyDay("parent_a_days", d.key)}
+                        />
+                        {d.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Nome do responsável 2</Label>
+                  <Input
+                    value={formData.parent_b_name || ""}
+                    onChange={(e) => setFormData({ ...formData, parent_b_name: e.target.value })}
+                    placeholder="Ex: Maria Souza"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {custodyDays.map((d) => (
+                      <label
+                        key={d.key}
+                        className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-teal-200 text-teal-600"
+                          checked={(formData.parent_b_days || []).includes(d.key)}
+                          onChange={() => toggleCustodyDay("parent_b_days", d.key)}
+                        />
+                        {d.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Observações da convivência</Label>
+                  <Textarea
+                    value={formData.custody_notes || ""}
+                    onChange={(e) => setFormData({ ...formData, custody_notes: e.target.value })}
+                    placeholder="Ex: horários, trocas, orientações"
+                  />
+                </div>
+              </div>
             </div>
             <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={createChild.isPending || updateChild.isPending}>
               {(createChild.isPending || updateChild.isPending) ? "Salvando..." : editingChild ? "Salvar Alterações" : "Adicionar Criança"}

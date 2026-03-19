@@ -107,6 +107,13 @@ function childIn(body) {
     inviteCode: body?.invite_code,
     ownerEmail: body?.owner_email,
     caregiverEmails: body?.caregiver_emails,
+
+    // Convivência (pais separados)
+    parentAName: body?.parent_a_name,
+    parentADays: body?.parent_a_days,
+    parentBName: body?.parent_b_name,
+    parentBDays: body?.parent_b_days,
+    custodyNotes: body?.custody_notes,
   });
 }
 
@@ -122,6 +129,14 @@ function childOut(c) {
     invite_code: c.inviteCode,
     owner_email: c.ownerEmail,
     caregiver_emails: c.caregiverEmails || [],
+
+    // Convivência (pais separados)
+    parent_a_name: c.parentAName,
+    parent_a_days: c.parentADays || [],
+    parent_b_name: c.parentBName,
+    parent_b_days: c.parentBDays || [],
+    custody_notes: c.custodyNotes,
+
     created_at: c.createdAt ? new Date(c.createdAt).toISOString() : undefined,
     updated_at: c.updatedAt ? new Date(c.updatedAt).toISOString() : undefined,
   };
@@ -310,6 +325,27 @@ function messageOut(m) {
   };
 }
 
+function dailyReportIn(body) {
+  return pickDefined({
+    childId: body?.child_id,
+    date: toDateOnly(body?.date),
+    reportText: body?.report_text,
+    mood: body?.mood,
+  });
+}
+
+function dailyReportOut(r) {
+  return {
+    id: r.id,
+    child_id: r.childId,
+    date: r.date ? dateOnlyString(r.date) : undefined,
+    report_text: r.reportText,
+    mood: r.mood,
+    created_at: r.createdAt ? new Date(r.createdAt).toISOString() : undefined,
+    updated_at: r.updatedAt ? new Date(r.updatedAt).toISOString() : undefined,
+  };
+}
+
 app.use(
   cors({
     origin(origin, cb) {
@@ -406,6 +442,11 @@ app.get("/api/children", async (_req, res) => {
 app.post("/api/children", async (req, res) => {
   try {
     const data = childIn(req.body);
+    // Campos de lista (`String[]`) não podem ser deixados como undefined na criação.
+    // Nas atualizações, a ausência desses campos preserva os valores existentes.
+    if (data.caregiverEmails === undefined) data.caregiverEmails = [];
+    if (data.parentADays === undefined) data.parentADays = [];
+    if (data.parentBDays === undefined) data.parentBDays = [];
     const child = await prisma.child.create({ data });
     res.status(201).json(childOut(child));
   } catch (e) {
@@ -698,6 +739,65 @@ app.post("/api/messages", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to create message" });
+  }
+});
+
+// ---- DAILY REPORTS ----
+app.get("/api/daily-reports", async (req, res) => {
+  try {
+    const { child_id, date } = req.query || {};
+    if (!child_id) return res.status(400).json({ error: "Campo 'child_id' é obrigatório" });
+    if (!date) return res.status(400).json({ error: "Campo 'date' é obrigatório (yyyy-mm-dd)" });
+
+    const day = toDateOnly(String(date));
+    if (!day) return res.status(400).json({ error: "Campo 'date' inválido (yyyy-mm-dd)" });
+
+    const report = await prisma.dailyReport.findUnique({
+      where: {
+        childId_date: { childId: String(child_id), date: day },
+      },
+    });
+
+    res.json(report ? dailyReportOut(report) : null);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to get daily report" });
+  }
+});
+
+app.post("/api/daily-reports/upsert", async (req, res) => {
+  try {
+    const { child_id, date, report_text, mood } = req.body || {};
+    if (!child_id) return res.status(400).json({ error: "Campo 'child_id' é obrigatório" });
+    if (!date) return res.status(400).json({ error: "Campo 'date' é obrigatório (yyyy-mm-dd)" });
+    if (report_text === undefined) return res.status(400).json({ error: "Campo 'report_text' é obrigatório" });
+
+    const day = toDateOnly(String(date));
+    if (!day) return res.status(400).json({ error: "Campo 'date' inválido (yyyy-mm-dd)" });
+
+    const report = await prisma.dailyReport.upsert({
+      where: {
+        childId_date: {
+          childId: String(child_id),
+          date: day,
+        },
+      },
+      update: {
+        reportText: String(report_text),
+        mood: typeof mood === "string" && mood.trim() !== "" ? mood : null,
+      },
+      create: {
+        childId: String(child_id),
+        date: day,
+        reportText: String(report_text),
+        mood: typeof mood === "string" && mood.trim() !== "" ? mood : null,
+      },
+    });
+
+    res.status(201).json(dailyReportOut(report));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to upsert daily report" });
   }
 });
 
