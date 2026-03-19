@@ -21,9 +21,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const allowedOrigins = [
-  process.env.WEB_ORIGIN || "http://localhost:5173",
+  "http://localhost:5173",
   "http://127.0.0.1:5173",
-];
+  "https://cuidajunto.netlify.app",
+  process.env.WEB_ORIGIN,
+].filter(Boolean);
 
 app.use(
   cors({
