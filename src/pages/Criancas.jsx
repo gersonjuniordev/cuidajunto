@@ -209,7 +209,7 @@ export default function Criancas() {
       )}
 
       <Dialog open={showForm} onOpenChange={closeForm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingChild ? "Editar Criança" : "Nova Criança"}</DialogTitle>
           </DialogHeader>
@@ -229,7 +229,7 @@ export default function Criancas() {
               <Label>Nome completo *</Label>
               <Input value={formData.name || ""} onChange={e => setFormData({...formData, name: e.target.value})} required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>Data de nascimento</Label>
                 <Input type="date" value={formData.birth_date || ""} onChange={e => setFormData({...formData, birth_date: e.target.value})} />
@@ -263,11 +263,11 @@ export default function Criancas() {
                     onChange={(e) => setFormData({ ...formData, parent_a_name: e.target.value })}
                     placeholder="Ex: João da Silva"
                   />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {custodyDays.map((d) => (
                       <label
                         key={d.key}
-                        className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50"
+                        className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50"
                       >
                         <input
                           type="checkbox"
@@ -288,11 +288,11 @@ export default function Criancas() {
                     onChange={(e) => setFormData({ ...formData, parent_b_name: e.target.value })}
                     placeholder="Ex: Maria Souza"
                   />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {custodyDays.map((d) => (
                       <label
                         key={d.key}
-                        className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50"
+                        className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50"
                       >
                         <input
                           type="checkbox"
