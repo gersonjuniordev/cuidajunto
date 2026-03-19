@@ -17,6 +17,24 @@ import ChildSelector from "../components/shared/ChildSelector";
 import EmptyState from "../components/shared/EmptyState";
 import { useAccessibleChildren } from "../hooks/useAccessibleChildren";
 
+const categoryLabels = {
+  consulta: "Consulta",
+  escola: "Escola",
+  atividade: "Atividade",
+  viagem: "Viagem",
+  aniversario: "Aniversário",
+  outro: "Outro",
+};
+
+const categoryColors = {
+  consulta: "bg-red-100 text-red-700",
+  escola: "bg-blue-100 text-blue-700",
+  atividade: "bg-green-100 text-green-700",
+  viagem: "bg-purple-100 text-purple-700",
+  aniversario: "bg-pink-100 text-pink-700",
+  outro: "bg-slate-100 text-slate-700",
+};
+
 export default function Agenda() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
