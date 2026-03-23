@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { api, setAuthToken } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
 
-export default function Login({ onDone }) {
+export default function Login({ onDone, initialMode = "login" }) {
   const { refresh } = useAuth();
-  const [mode, setMode] = useState("login"); // login | register
+  const [mode, setMode] = useState(initialMode === "register" ? "register" : "login"); // login | register
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");

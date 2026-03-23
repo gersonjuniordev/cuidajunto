@@ -16,6 +16,7 @@ import Chat from './pages/Chat';
 import EntrarPorCodigo from './pages/EntrarPorCodigo';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import { api } from '@/api/client';
 import { useState, useEffect } from 'react';
 
@@ -38,7 +39,14 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated) {
-    return <Login />;
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login initialMode="login" />} />
+        <Route path="/register" element={<Login initialMode="register" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   // Se não tem crianças cadastradas e onboarding não foi concluído nesta sessão, mostra onboarding
@@ -61,6 +69,8 @@ const AuthenticatedApp = () => {
         <Route path="/Criancas" element={<Criancas />} />
         <Route path="/Chat" element={<Chat />} />
         <Route path="/EntrarPorCodigo" element={<EntrarPorCodigo />} />
+        <Route path="/login" element={<Navigate to="/Dashboard" replace />} />
+        <Route path="/register" element={<Navigate to="/Dashboard" replace />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
