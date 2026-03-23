@@ -14,7 +14,7 @@ import {
 
 function Feature({ icon: Icon, title, description }) {
   return (
-    <Card className="border-0 shadow-sm p-5 bg-white/80">
+    <Card className="border border-slate-100 shadow-sm p-5 bg-white">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center flex-shrink-0">
           <Icon className="w-5 h-5 text-teal-700" />
@@ -28,7 +28,27 @@ function Feature({ icon: Icon, title, description }) {
   );
 }
 
-function PlanCard({ highlight, title, price, subtitle, bullets, ctaLabel, onCta }) {
+function PlanCard({
+  highlight,
+  buttonStyle,
+  title,
+  price,
+  subtitle,
+  bullets,
+  ctaLabel,
+  onCta,
+}) {
+  const isTeal = buttonStyle === "teal";
+  const isDark = buttonStyle === "dark";
+  const isOutlineTeal = buttonStyle === "outlineTeal";
+
+  const variant = isOutlineTeal ? "outline" : "default";
+  const btnClassName = isOutlineTeal
+    ? "bg-transparent border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800 shadow-none"
+    : isDark
+      ? "bg-slate-900 hover:bg-slate-800 text-white shadow"
+      : "bg-teal-600 hover:bg-teal-700 text-white shadow";
+
   return (
     <Card
       className={`border-0 shadow-sm p-6 bg-white ${
@@ -62,12 +82,7 @@ function PlanCard({ highlight, title, price, subtitle, bullets, ctaLabel, onCta 
         ))}
       </div>
 
-      <Button
-        className={`w-full mt-6 ${
-          highlight ? "bg-teal-600 hover:bg-teal-700" : "bg-slate-900 hover:bg-slate-800"
-        }`}
-        onClick={onCta}
-      >
+      <Button className={`w-full mt-6 ${btnClassName}`} variant={variant} onClick={onCta} type="button">
         {ctaLabel}
       </Button>
     </Card>
@@ -92,7 +107,7 @@ export default function Landing() {
             <Button asChild variant="outline" className="border-teal-200 text-teal-700 hover:bg-teal-50">
               <Link to="/login">Entrar</Link>
             </Button>
-            <Button asChild className="bg-teal-600 hover:bg-teal-700">
+            <Button asChild className="bg-teal-600 hover:bg-teal-700 text-white" variant="default">
               <Link to="/register">Criar conta</Link>
             </Button>
           </div>
@@ -101,7 +116,9 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-4 pt-8 pb-6">
-        <div className="rounded-3xl bg-gradient-to-r from-teal-700 to-amber-500 p-6 sm:p-10 text-white shadow-sm">
+        <div className="rounded-3xl bg-gradient-to-r from-teal-700 to-amber-500 p-6 sm:p-10 text-white shadow-sm overflow-hidden relative">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-black/10 blur-2xl" />
           <div className="flex items-start justify-between gap-6">
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-semibold">
@@ -118,19 +135,24 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   asChild
-                  className="bg-teal-400 text-teal-900 hover:bg-teal-300 font-semibold"
+                  className="bg-teal-400 hover:bg-teal-500 text-teal-950 font-semibold"
+                  variant="default"
                 >
                   <Link to="/register">Testar agora</Link>
                 </Button>
-                <Button asChild variant="outline" className="border-white/35 text-white hover:bg-white/10">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="bg-transparent border-white/45 text-white hover:bg-white/15 hover:text-white shadow-none"
+                >
                   <Link to="/login">Login</Link>
                 </Button>
               </div>
             </div>
 
             <div className="hidden md:block">
-              <div className="w-36 h-36 rounded-3xl bg-white/15 flex items-center justify-center">
-                <img src="/logo.jpeg" alt="CuidaJunto" className="w-24 h-24 rounded-2xl object-cover" />
+              <div className="w-40 h-40 rounded-3xl bg-white/15 flex items-center justify-center">
+                <img src="/logo.jpeg" alt="CuidaJunto" className="w-28 h-28 rounded-2xl object-cover" />
               </div>
             </div>
           </div>
@@ -140,10 +162,10 @@ export default function Landing() {
       {/* Mobile quick actions */}
       <div className="sm:hidden px-4 -mt-2 pb-4">
         <div className="flex gap-2">
-          <Button asChild variant="outline" className="w-1/2 border-teal-200 text-teal-700 hover:bg-teal-50">
+          <Button asChild variant="outline" className="w-1/2 border-teal-200 text-teal-700 hover:bg-teal-50 shadow-none">
             <Link to="/login">Entrar</Link>
           </Button>
-          <Button asChild className="w-1/2 bg-teal-600 hover:bg-teal-700">
+          <Button asChild className="w-1/2 bg-teal-600 hover:bg-teal-700 text-white" variant="default">
             <Link to="/register">Criar conta</Link>
           </Button>
         </div>
@@ -200,21 +222,21 @@ export default function Landing() {
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card className="p-5 bg-white/80 border-0 shadow-sm">
+          <Card className="p-5 bg-white border border-slate-100 shadow-sm">
             <div className="text-xs font-semibold text-teal-700 bg-teal-50 inline-flex px-3 py-1 rounded-full">
               1
             </div>
             <div className="font-semibold text-slate-900 mt-3">Crie sua conta</div>
             <div className="text-sm text-slate-500 mt-1">Cadastre a família e convide cuidadores.</div>
           </Card>
-          <Card className="p-5 bg-white/80 border-0 shadow-sm">
+          <Card className="p-5 bg-white border border-slate-100 shadow-sm">
             <div className="text-xs font-semibold text-teal-700 bg-teal-50 inline-flex px-3 py-1 rounded-full">
               2
             </div>
             <div className="font-semibold text-slate-900 mt-3">Organize a agenda</div>
             <div className="text-sm text-slate-500 mt-1">Eventos, tarefas e medicamentos por criança.</div>
           </Card>
-          <Card className="p-5 bg-white/80 border-0 shadow-sm">
+          <Card className="p-5 bg-white border border-slate-100 shadow-sm">
             <div className="text-xs font-semibold text-teal-700 bg-teal-50 inline-flex px-3 py-1 rounded-full">
               3
             </div>
@@ -239,6 +261,7 @@ export default function Landing() {
           <div className="grid gap-3 lg:grid-cols-3">
             <PlanCard
               title="Grátis"
+              buttonStyle="outlineTeal"
               price="R$ 0"
               subtitle="Para testar e organizar o básico"
               bullets={["Até 1 criança", "Agenda e eventos", "Relatório do dia básico"]}
@@ -248,6 +271,7 @@ export default function Landing() {
             <PlanCard
               highlight
               title="Premium Mensal"
+              buttonStyle="teal"
               price="R$ 19,90"
               subtitle="Por mês"
               bullets={[
@@ -260,6 +284,7 @@ export default function Landing() {
             />
             <PlanCard
               title="Premium Anual"
+              buttonStyle="dark"
               price="R$ 199,90"
               subtitle="Economize no ano"
               bullets={[
