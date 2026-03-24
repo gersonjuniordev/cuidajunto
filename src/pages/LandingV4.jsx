@@ -178,7 +178,7 @@ export default function LandingV4() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img
-                src="/logo.jpeg"
+                src="/logonova.jpeg"
                 alt="CuidaJunto"
                 className="w-10 h-10 rounded-2xl object-cover"
               />

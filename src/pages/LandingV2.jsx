@@ -86,7 +86,7 @@ export default function LandingV2() {
       <header className="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <img src="/logo.jpeg" alt="CuidaJunto" className="w-9 h-9 rounded-xl object-cover" />
+            <img src="/logonova.jpeg" alt="CuidaJunto" className="w-9 h-9 rounded-xl object-cover" />
             <div>
               <div className="font-bold text-slate-900 leading-tight">CuidaJunto</div>
               <div className="text-xs text-slate-500">Agenda familiar compartilhada</div>
@@ -268,7 +268,7 @@ export default function LandingV2() {
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="flex items-start justify-between gap-6 flex-col sm:flex-row">
             <div className="flex items-center gap-3">
-              <img src="/logo.jpeg" alt="CuidaJunto" className="w-10 h-10 rounded-2xl object-cover" />
+              <img src="/logonova.jpeg" alt="CuidaJunto" className="w-10 h-10 rounded-2xl object-cover" />
               <div>
                 <div className="font-bold">CuidaJunto</div>
                 <div className="text-xs text-white/70 mt-1">Agenda familiar compartilhada</div>
