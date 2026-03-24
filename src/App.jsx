@@ -16,7 +16,7 @@ import Chat from './pages/Chat';
 import EntrarPorCodigo from './pages/EntrarPorCodigo';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
-import LandingV4 from './pages/LandingV4';
+import LandingV5 from './pages/LandingV5';
 import { api } from '@/api/client';
 import { useState, useEffect } from 'react';
 
@@ -41,7 +41,7 @@ const AuthenticatedApp = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/" element={<LandingV4 />} />
+        <Route path="/" element={<LandingV5 />} />
         <Route path="/login" element={<Login initialMode="login" />} />
         <Route path="/register" element={<Login initialMode="register" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
