@@ -41,6 +41,19 @@ export const api = {
       request("/api/auth/login", { method: "POST", body: JSON.stringify(data) }),
     logout: () => request("/api/auth/logout", { method: "POST" }),
   },
+  billing: {
+    plans: () => request("/api/billing/plans"),
+    status: () => request("/api/billing/status"),
+    createSubscription: (plan) =>
+      request("/api/billing/create-subscription", {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      }),
+    refresh: () =>
+      request("/api/billing/refresh", {
+        method: "POST",
+      }),
+  },
   children: {
     list: () => request("/api/children"),
     create: (data) =>

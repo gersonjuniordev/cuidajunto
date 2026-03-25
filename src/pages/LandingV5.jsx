@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, Sparkles, CalendarDays, ShieldCheck, MessageCircle, HeartHandshake } from "lucide-react";
+import { Check, Sparkles, CalendarDays, ShieldCheck, MessageCircle, HeartHandshake, Loader2 } from "lucide-react";
+import { api, getAuthToken } from "@/api/client";
 
 function publicImage(name) {
   return encodeURI(`/${name}`);
@@ -56,23 +57,35 @@ function ImageCard({ src, alt, title, desc, onClick }) {
 
 export default function LandingV5() {
   const navigate = useNavigate();
+  const [loadingPlan, setLoadingPlan] = useState(null);
 
-  const heroMain = publicImage("WhatsApp Image 2026-03-23 at 12.07.00.jpeg");
-  const dorEsquecimento = publicImage("WhatsApp Image 2026-03-23 at 11.57.13.jpeg");
-  const dorComunicacao = publicImage("WhatsApp Image 2026-03-23 at 11.57.14 (3).jpeg");
-  const dorRotina = publicImage("WhatsApp Image 2026-03-23 at 11.57.13 (2).jpeg");
+  const imgA = publicImage("WhatsApp Image 2026-03-24 at 09.25.27 (1).jpeg");
+  const imgB = publicImage("WhatsApp Image 2026-03-24 at 09.25.27.jpeg");
+  const imgC = publicImage("WhatsApp Image 2026-03-24 at 09.25.28 (1).jpeg");
+  const imgD = publicImage("WhatsApp Image 2026-03-24 at 09.25.28 (2).jpeg");
+  const imgE = publicImage("WhatsApp Image 2026-03-24 at 09.25.28.jpeg");
 
-  const solucaoTudo = publicImage("WhatsApp Image 2026-03-23 at 11.57.13 (3).jpeg");
-  const rotinaChecklist = publicImage("WhatsApp Image 2026-03-23 at 11.57.14 (2).jpeg");
-  const eviteEsquecimentos = publicImage("WhatsApp Image 2026-03-23 at 11.57.14.jpeg");
-
-  const paisSeparados = publicImage("WhatsApp Image 2026-03-23 at 11.57.13 (1).jpeg");
-  const tranquilidade = publicImage("WhatsApp Image 2026-03-23 at 11.57.14 (1).jpeg");
-  const paisConectados = publicImage("WhatsApp Image 2026-03-23 at 11.57.15 (2).jpeg");
-
-  const ctaTeste = publicImage("WhatsApp Image 2026-03-23 at 11.57.15 (1).jpeg");
-  const apoioFinal = publicImage("WhatsApp Image 2026-03-23 at 11.57.15.jpeg");
-  const apoioFinal2 = publicImage("WhatsApp Image 2026-03-23 at 11.57.13 (2).jpeg");
+  const subscribePlan = async (plan) => {
+    try {
+      setLoadingPlan(plan);
+      const token = getAuthToken();
+      if (!token) {
+        navigate("/register");
+        return;
+      }
+      const res = await api.billing.createSubscription(plan);
+      const checkoutUrl = res?.checkout_url || res?.sandbox_checkout_url;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+        return;
+      }
+      throw new Error("Não foi possível gerar o link de pagamento.");
+    } catch (e) {
+      alert("Falha ao iniciar assinatura. Verifique a configuração do Mercado Pago no servidor.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -101,7 +114,7 @@ export default function LandingV5() {
         {/* HERO */}
         <Reveal className="max-w-6xl mx-auto px-4 pt-5">
           <div className="rounded-3xl overflow-hidden shadow-sm border border-slate-100 bg-white">
-            <img src={heroMain} alt="CuidaJunto - Hero" className="w-full h-auto block" draggable={false} />
+            <img src={imgA} alt="CuidaJunto - Hero" className="w-full h-auto block" draggable={false} />
           </div>
           <div className="mt-4 flex flex-col sm:flex-row gap-3">
             <Button className="bg-teal-600 hover:bg-teal-700 text-white shadow w-full sm:w-auto" onClick={() => navigate("/register")}>
@@ -121,23 +134,23 @@ export default function LandingV5() {
             </div>
             <h2 className="text-xl font-bold text-slate-900">Você se identifica com isso?</h2>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <ImageCard
-              src={dorEsquecimento}
+              src={imgE}
               alt="Esquecimento"
               title="Esquecimentos importantes"
               desc="Tudo solto no WhatsApp gera atraso e estresse."
               onClick={() => navigate("/register")}
             />
             <ImageCard
-              src={dorComunicacao}
+              src={imgD}
               alt="Falha de comunicação"
               title="Falhas de comunicação"
               desc="Cada cuidador com uma informação diferente."
               onClick={() => navigate("/register")}
             />
             <ImageCard
-              src={dorRotina}
+              src={imgC}
               alt="Rotina bagunçada"
               title="Rotina bagunçada"
               desc="Sem previsibilidade para a criança e para a família."
@@ -150,7 +163,7 @@ export default function LandingV5() {
         <Reveal className="max-w-6xl mx-auto px-4 pt-10">
           <div className="grid gap-4 lg:grid-cols-2">
             <ImageCard
-              src={solucaoTudo}
+              src={imgB}
               alt="Tudo em um só lugar"
               title="Tudo em um só lugar"
               desc="Agenda, tarefas, mensagens e relatório diário centralizados."
@@ -192,72 +205,44 @@ export default function LandingV5() {
 
         {/* Pais separados / confiança */}
         <Reveal className="max-w-6xl mx-auto px-4 pt-10">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <ImageCard
-              src={paisSeparados}
-              alt="Pais separados"
-              title="Pais separados, mais paz"
-              desc="Menos conflito com acordos claros e rotina definida."
-              onClick={() => navigate("/register")}
-            />
-            <ImageCard
-              src={tranquilidade}
-              alt="Tranquilidade para família"
-              title="Tranquilidade para toda a família"
-              desc="Mais previsibilidade para pais e crianças."
-              onClick={() => navigate("/register")}
-            />
-            <ImageCard
-              src={paisConectados}
-              alt="Pais conectados"
-              title="Pais conectados"
-              desc="Todos alinhados sobre o que importa."
-              onClick={() => navigate("/register")}
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card className="p-5 bg-white border border-slate-100 shadow-sm">
+              <h3 className="font-semibold text-slate-900">Pais separados, mais paz</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Com o CuidaJunto, as decisões e a rotina ficam registradas para todos.
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-teal-700" />Dias de convivência por responsável</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-teal-700" />Relatório diário compartilhado</li>
+              </ul>
+            </Card>
+            <Card className="p-5 bg-white border border-slate-100 shadow-sm">
+              <h3 className="font-semibold text-slate-900">Menos confusão, sem sobrecarga</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Centralize comunicação, tarefas e lembretes em um só lugar.
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-teal-700" />Histórico claro de cada criança</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-teal-700" />Alertas e vencimentos automáticos</li>
+              </ul>
+            </Card>
           </div>
-        </Reveal>
-
-        {/* Organização + alerta */}
-        <Reveal className="max-w-6xl mx-auto px-4 pt-10">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ImageCard
-              src={rotinaChecklist}
-              alt="Organize a rotina"
-              title="Organize a rotina do seu filho"
-              desc="Checklists e tarefas em um fluxo simples."
-              onClick={() => navigate("/register")}
-            />
-            <ImageCard
-              src={eviteEsquecimentos}
-              alt="Evite esquecimentos"
-              title="Evite esquecimentos"
-              desc="Alertas e lembretes para não perder o que é importante."
-              onClick={() => navigate("/register")}
-            />
-          </div>
-        </Reveal>
-
-        {/* CTA visual clicável */}
-        <Reveal className="max-w-6xl mx-auto px-4 pt-10">
-          <Card className="overflow-hidden border border-slate-100 shadow-sm bg-white">
-            <button type="button" className="w-full text-left" onClick={() => navigate("/register")}>
-              <img src={ctaTeste} alt="Teste agora grátis" className="w-full h-auto block" draggable={false} />
-            </button>
-          </Card>
         </Reveal>
 
         {/* Planos */}
         <Reveal className="max-w-6xl mx-auto px-4 pt-10">
           <div className="mb-5">
             <h2 className="text-2xl font-bold text-slate-900">Planos</h2>
-            <p className="text-sm text-slate-500 mt-1">Comece grátis e evolua conforme a sua família precisa.</p>
+            <p className="text-sm text-slate-500 mt-1">
+              3 dias grátis sem cartão. Depois, escolha o plano ideal.
+            </p>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-3">
             <Card className="p-6 bg-white border border-slate-100 shadow-sm">
               <div className="font-semibold text-slate-900">Grátis</div>
               <div className="text-3xl font-extrabold text-slate-900 mt-3">R$ 0</div>
-              <div className="text-sm text-slate-500 mt-1">Teste inicial</div>
+              <div className="text-sm text-slate-500 mt-1">3 dias de teste (sem cartão)</div>
               <div className="mt-4 space-y-2">
                 {["Até 1 criança", "Agenda e tarefas", "Relatório básico"].map((b) => (
                   <div key={b} className="flex items-center gap-2 text-sm text-slate-700">
@@ -291,40 +276,56 @@ export default function LandingV5() {
                   </div>
                 ))}
               </div>
-              <Button className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white shadow" onClick={() => navigate("/register")}>
-                Assinar mensal
+              <Button
+                className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white shadow"
+                onClick={() => subscribePlan("monthly")}
+                disabled={loadingPlan !== null}
+              >
+                {loadingPlan === "monthly" ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Processando...</> : "Assinar mensal"}
               </Button>
             </Card>
 
             <Card className="p-6 bg-white border border-slate-100 shadow-sm">
-              <div className="font-semibold text-slate-900">Premium Anual</div>
-              <div className="text-3xl font-extrabold text-slate-900 mt-3">R$ 199,90</div>
-              <div className="text-sm text-slate-500 mt-1">Economia no ano</div>
+              <div className="font-semibold text-slate-900">Trimestral</div>
+              <div className="text-3xl font-extrabold text-slate-900 mt-3">R$ 56,71</div>
+              <div className="text-sm text-teal-700 mt-1 font-semibold">Com 5% OFF</div>
               <div className="mt-4 space-y-2">
-                {["Tudo do mensal", "Desconto anual", "Histórico completo"].map((b) => (
+                {["Tudo do mensal", "Cobrança a cada 3 meses", "5% de desconto"].map((b) => (
                   <div key={b} className="flex items-center gap-2 text-sm text-slate-700">
                     <Check className="w-4 h-4 text-teal-700" />
                     {b}
                   </div>
                 ))}
               </div>
-              <Button className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white shadow" onClick={() => navigate("/register")}>
-                Assinar anual
+              <Button
+                className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white shadow"
+                onClick={() => subscribePlan("quarterly")}
+                disabled={loadingPlan !== null}
+              >
+                {loadingPlan === "quarterly" ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Processando...</> : "Assinar trimestral"}
               </Button>
             </Card>
           </div>
         </Reveal>
 
-        {/* Encerramento visual */}
-        <Reveal className="max-w-6xl mx-auto px-4 pt-10 pb-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="overflow-hidden border border-slate-100 shadow-sm bg-white">
-              <img src={apoioFinal} alt="Mais organização menos stress" className="w-full h-auto block" draggable={false} />
-            </Card>
-            <Card className="overflow-hidden border border-slate-100 shadow-sm bg-white">
-              <img src={apoioFinal2} alt="Rotina organizada" className="w-full h-auto block" draggable={false} />
-            </Card>
-          </div>
+        {/* Plano anual */}
+        <Reveal className="max-w-6xl mx-auto px-4 pt-4 pb-4">
+          <Card className="p-6 bg-white border border-slate-100 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <div className="font-semibold text-slate-900">Anual</div>
+                <div className="text-3xl font-extrabold text-slate-900 mt-2">R$ 202,98</div>
+                <div className="text-sm text-slate-500 mt-1">Desconto aplicado no anual</div>
+              </div>
+              <Button
+                className="bg-teal-600 hover:bg-teal-700 text-white shadow w-full sm:w-auto"
+                onClick={() => subscribePlan("yearly")}
+                disabled={loadingPlan !== null}
+              >
+                {loadingPlan === "yearly" ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Processando...</> : "Assinar anual"}
+              </Button>
+            </div>
+          </Card>
         </Reveal>
       </main>
 

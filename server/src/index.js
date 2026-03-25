@@ -29,6 +29,33 @@ const SMTP_FROM = process.env.SMTP_FROM;
 const SMTP_SECURE =
   process.env.SMTP_SECURE === "true" || process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "yes";
 
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const APP_BASE_URL = process.env.APP_BASE_URL || process.env.WEB_ORIGIN || "http://localhost:5173";
+
+const BILLING_PLANS = {
+  monthly: {
+    id: "monthly",
+    label: "Mensal",
+    amount: 19.9,
+    frequency: 1,
+    frequencyType: "months",
+  },
+  quarterly: {
+    id: "quarterly",
+    label: "Trimestral",
+    amount: 56.71,
+    frequency: 3,
+    frequencyType: "months",
+  },
+  yearly: {
+    id: "yearly",
+    label: "Anual",
+    amount: 202.98,
+    frequency: 12,
+    frequencyType: "months",
+  },
+};
+
 function requireSmtpConfig() {
   if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) return false;
   return true;
@@ -57,6 +84,40 @@ async function sendEmailViaSmtp({ to, subject, text }) {
     subject,
     text: text || "",
   });
+}
+
+function requireMercadoPagoConfig() {
+  return !!MP_ACCESS_TOKEN;
+}
+
+async function mercadoPagoRequest(endpoint, { method = "GET", body } = {}) {
+  if (!requireMercadoPagoConfig()) {
+    throw new Error("Mercado Pago não configurado (adicione MP_ACCESS_TOKEN no server).");
+  }
+  const res = await fetch(`https://api.mercadopago.com${endpoint}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = { raw: text };
+  }
+
+  if (!res.ok) {
+    const err = new Error("Mercado Pago request failed");
+    err.status = res.status;
+    err.payload = json;
+    throw err;
+  }
+  return json;
 }
 
 const allowedOrigins = [
@@ -92,6 +153,60 @@ function toDateTime(v) {
 function dateOnlyString(d) {
   if (!d) return null;
   return new Date(d).toISOString().slice(0, 10);
+}
+
+function parseBearerToken(req) {
+  const auth = req.headers.authorization || "";
+  return auth.startsWith("Bearer ") ? auth.slice(7) : null;
+}
+
+async function authUserFromRequest(req) {
+  const token = parseBearerToken(req);
+  if (!token) return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (!payload?.sub) return null;
+    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    return user || null;
+  } catch {
+    return null;
+  }
+}
+
+function addDays(base, days) {
+  const d = new Date(base);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
+function addMonths(base, months) {
+  const d = new Date(base);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d;
+}
+
+function billingStateOut(user) {
+  const now = new Date();
+  const trialEndsAt = user?.trialEndsAt ? new Date(user.trialEndsAt) : null;
+  const subscriptionEndsAt = user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt) : null;
+
+  const trialActive = !!trialEndsAt && trialEndsAt > now;
+  const subscriptionActive = !!subscriptionEndsAt && subscriptionEndsAt > now;
+  const accessActive = trialActive || subscriptionActive || user?.billingStatus === "active";
+
+  const daysLeftTrial = trialActive ? Math.ceil((trialEndsAt - now) / (1000 * 60 * 60 * 24)) : 0;
+
+  return {
+    status: user?.billingStatus || "trialing",
+    plan: user?.billingPlan || "trial",
+    trial_ends_at: trialEndsAt ? trialEndsAt.toISOString() : null,
+    trial_active: trialActive,
+    trial_days_left: daysLeftTrial,
+    subscription_ends_at: subscriptionEndsAt ? subscriptionEndsAt.toISOString() : null,
+    subscription_active: subscriptionActive,
+    mercado_pago_status: user?.mercadoPagoStatus || null,
+    access_active: accessActive,
+  };
 }
 
 // ---- MAPPERS snake_case <-> camelCase ----
@@ -373,17 +488,15 @@ app.get("/health", (_req, res) => {
 
 // ---- AUTH (simples, baseado só em email) ----
 app.get("/api/me", async (_req, res) => {
-  const auth = _req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token) return res.status(401).json({ error: "Not authenticated" });
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) return res.status(401).json({ error: "Not authenticated" });
-    res.json({ id: user.id, email: user.email, full_name: user.name, name: user.name });
-  } catch {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
+  const user = await authUserFromRequest(_req);
+  if (!user) return res.status(401).json({ error: "Not authenticated" });
+  res.json({
+    id: user.id,
+    email: user.email,
+    full_name: user.name,
+    name: user.name,
+    billing: billingStateOut(user),
+  });
 });
 
 app.post("/api/auth/register", async (req, res) => {
@@ -395,9 +508,28 @@ app.post("/api/auth/register", async (req, res) => {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: "Usuário já existe" });
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({ data: { email, name, passwordHash } });
+    const trialEndsAt = addDays(new Date(), 3);
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        passwordHash,
+        billingStatus: "trialing",
+        billingPlan: "trial",
+        trialEndsAt,
+      },
+    });
     const token = jwt.sign({}, JWT_SECRET, { subject: user.id, expiresIn: "30d" });
-    res.status(201).json({ token, user: { id: user.id, email: user.email, full_name: user.name, name: user.name } });
+    res.status(201).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.name,
+        name: user.name,
+        billing: billingStateOut(user),
+      },
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to register" });
@@ -415,7 +547,16 @@ app.post("/api/auth/login", async (req, res) => {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: "Credenciais inválidas" });
     const token = jwt.sign({}, JWT_SECRET, { subject: user.id, expiresIn: "30d" });
-    res.json({ token, user: { id: user.id, email: user.email, full_name: user.name, name: user.name } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.name,
+        name: user.name,
+        billing: billingStateOut(user),
+      },
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to login" });
@@ -424,6 +565,154 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.post("/api/auth/logout", (_req, res) => {
   res.status(204).end();
+});
+
+// ---- BILLING (Mercado Pago + trial) ----
+app.get("/api/billing/plans", (_req, res) => {
+  const plans = Object.values(BILLING_PLANS).map((p) => ({
+    id: p.id,
+    label: p.label,
+    amount: p.amount,
+    frequency: p.frequency,
+    frequency_type: p.frequencyType,
+  }));
+  res.json({
+    trial_days: 3,
+    plans,
+  });
+});
+
+app.get("/api/billing/status", async (req, res) => {
+  const user = await authUserFromRequest(req);
+  if (!user) return res.status(401).json({ error: "Not authenticated" });
+  res.json(billingStateOut(user));
+});
+
+app.post("/api/billing/create-subscription", async (req, res) => {
+  try {
+    const user = await authUserFromRequest(req);
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+    const planId = String(req.body?.plan || "").trim().toLowerCase();
+    const plan = BILLING_PLANS[planId];
+    if (!plan) {
+      return res.status(400).json({ error: "Plano inválido. Use: monthly, quarterly ou yearly." });
+    }
+
+    const body = {
+      reason: `CuidaJunto - ${plan.label}`,
+      auto_recurring: {
+        frequency: plan.frequency,
+        frequency_type: plan.frequencyType,
+        transaction_amount: plan.amount,
+        currency_id: "BRL",
+      },
+      payer_email: user.email,
+      external_reference: user.id,
+      back_url: `${APP_BASE_URL}/Dashboard`,
+      status: "pending",
+    };
+
+    const mpSub = await mercadoPagoRequest("/preapproval", {
+      method: "POST",
+      body,
+    });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        billingPlan: plan.id,
+        billingStatus: "pending_payment",
+        mercadoPagoPreapprovalId: mpSub?.id || null,
+        mercadoPagoSubscriptionUrl: mpSub?.init_point || null,
+        mercadoPagoStatus: mpSub?.status || "pending",
+      },
+    });
+
+    res.status(201).json({
+      plan: plan.id,
+      subscription_id: mpSub?.id || null,
+      checkout_url: mpSub?.init_point || null,
+      sandbox_checkout_url: mpSub?.sandbox_init_point || null,
+      status: mpSub?.status || null,
+    });
+  } catch (e) {
+    console.error("create-subscription error:", e?.payload || e);
+    res.status(500).json({ error: "Failed to create subscription", details: e?.payload || null });
+  }
+});
+
+app.post("/api/billing/refresh", async (req, res) => {
+  try {
+    const user = await authUserFromRequest(req);
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
+    if (!user.mercadoPagoPreapprovalId) {
+      return res.json({ refreshed: false, billing: billingStateOut(user) });
+    }
+    await syncUserFromPreapproval(user.mercadoPagoPreapprovalId);
+    const updated = await prisma.user.findUnique({ where: { id: user.id } });
+    return res.json({ refreshed: true, billing: billingStateOut(updated) });
+  } catch (e) {
+    console.error("billing refresh error:", e?.payload || e);
+    return res.status(500).json({ error: "Failed to refresh billing" });
+  }
+});
+
+async function syncUserFromPreapproval(preapprovalId) {
+  if (!preapprovalId) return null;
+  const sub = await mercadoPagoRequest(`/preapproval/${preapprovalId}`);
+  const userId = sub?.external_reference || null;
+  if (!userId) return sub;
+
+  let billingStatus = "pending_payment";
+  if (sub?.status === "authorized") billingStatus = "active";
+  if (sub?.status === "cancelled") billingStatus = "cancelled";
+  if (sub?.status === "paused") billingStatus = "paused";
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return sub;
+
+  let subscriptionEndsAt = user.subscriptionEndsAt;
+  if (sub?.next_payment_date) {
+    subscriptionEndsAt = new Date(sub.next_payment_date);
+  } else if (sub?.status === "authorized") {
+    // fallback aproximado quando o MP não devolve next_payment_date
+    const plan = BILLING_PLANS[user.billingPlan] || BILLING_PLANS.monthly;
+    subscriptionEndsAt = addMonths(new Date(), plan.frequency);
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      billingStatus,
+      mercadoPagoStatus: sub?.status || null,
+      mercadoPagoPreapprovalId: sub?.id || preapprovalId,
+      mercadoPagoSubscriptionUrl: sub?.init_point || user.mercadoPagoSubscriptionUrl || null,
+      subscriptionEndsAt,
+    },
+  });
+
+  return sub;
+}
+
+app.post("/api/webhooks/mercadopago", async (req, res) => {
+  try {
+    const topic = req.query?.topic || req.body?.type;
+    const dataId = req.query?.id || req.body?.data?.id;
+
+    if (
+      topic === "preapproval" ||
+      topic === "subscription_preapproval" ||
+      topic === "subscription_authorized_payment"
+    ) {
+      await syncUserFromPreapproval(String(dataId || ""));
+    }
+
+    res.status(204).end();
+  } catch (e) {
+    console.error("mercadopago webhook error:", e?.payload || e);
+    res.status(200).json({ ok: false });
+  }
 });
 
 // ---- CHILDREN ----

@@ -8,14 +8,23 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String?
   passwordHash String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  children  Child[]  @relation("ChildOwner")
+  // Billing / assinatura
+  billingStatus              String   @default("trialing")
+  billingPlan                String   @default("trial")
+  trialEndsAt                DateTime?
+  subscriptionEndsAt         DateTime?
+  mercadoPagoPreapprovalId   String?
+  mercadoPagoSubscriptionUrl String?
+  mercadoPagoStatus          String?
+
+  children Child[] @relation("ChildOwner")
 }
 
 model Child {
