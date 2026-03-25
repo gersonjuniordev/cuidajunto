@@ -69,6 +69,7 @@ const AuthenticatedApp = () => {
         <Route path="/Criancas" element={<Criancas />} />
         <Route path="/Chat" element={<Chat />} />
         <Route path="/EntrarPorCodigo" element={<EntrarPorCodigo />} />
+        <Route path="/planos" element={<LandingV5 />} />
         <Route path="/login" element={<Navigate to="/Dashboard" replace />} />
         <Route path="/register" element={<Navigate to="/Dashboard" replace />} />
       </Route>

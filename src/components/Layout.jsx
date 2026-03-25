@@ -7,6 +7,8 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "./notifications/NotificationBell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const navItems = [
   { path: "/Dashboard", icon: LayoutDashboard, label: "Início" },
@@ -21,7 +23,39 @@ const navItems = [
 export default function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const billing = user?.billing;
+
+  const trialBadge = (() => {
+    if (!billing) return null;
+    if (billing.trial_active) {
+      return `Teste grátis: ${billing.trial_days_left} dia(s)`;
+    }
+    if (billing.access_active) return `Plano ativo: ${billing.plan}`;
+    return `Assinatura necessária`;
+  })();
+
+  const trialSubtitle = (() => {
+    if (!billing) return null;
+    if (billing.trial_active && billing.trial_ends_at) {
+      try {
+        const d = new Date(billing.trial_ends_at);
+        return `Termina em ${d.toLocaleDateString("pt-BR")}`;
+      } catch {
+        return null;
+      }
+    }
+    if (billing.access_active && billing.subscription_ends_at) {
+      try {
+        const d = new Date(billing.subscription_ends_at);
+        return `Renova em ${d.toLocaleDateString("pt-BR")}`;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  })();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -144,6 +178,31 @@ export default function Layout() {
       {/* Main Content */}
       <main className="lg:ml-60 pt-14 lg:pt-0 min-h-screen">
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
+          {billing ? (
+            <div className="mb-6">
+              <Card className="border-teal-200/60 bg-teal-50">
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-teal-100 text-teal-800 border border-teal-200">
+                        {trialBadge}
+                      </Badge>
+                    </div>
+                    {trialSubtitle ? (
+                      <p className="text-sm text-teal-800/90 mt-1">{trialSubtitle}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                    variant="default"
+                    onClick={() => (window.location.href = "/planos")}
+                  >
+                    Ver planos
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
           <Outlet />
         </div>
       </main>
