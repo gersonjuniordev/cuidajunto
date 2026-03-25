@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Calendar, CheckSquare, Pill, FileText, 
@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import NotificationBell from "./notifications/NotificationBell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { api } from "@/api/client";
 
 const navItems = [
   { path: "/Dashboard", icon: LayoutDashboard, label: "Início" },
@@ -24,7 +27,8 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { logout, user } = useAuth();
+  const [plansOpen, setPlansOpen] = useState(false);
+  const { logout, user, refresh } = useAuth();
 
   const billing = user?.billing;
 
@@ -57,6 +61,34 @@ export default function Layout() {
     }
     return null;
   })();
+
+  const { data: billingPlans } = useQuery({
+    queryKey: ["billing_plans"],
+    queryFn: () => api.billing.plans(),
+    enabled: plansOpen,
+  });
+
+  const { data: billingStatus } = useQuery({
+    queryKey: ["billing_status"],
+    queryFn: () => api.billing.status(),
+    enabled: plansOpen,
+  });
+
+  const subscribeMutation = useMutation({
+    mutationFn: (planId) => api.billing.createSubscription(planId),
+    onSuccess: (res) => {
+      const checkoutUrl = res?.checkout_url || res?.sandbox_checkout_url;
+      if (checkoutUrl) window.location.href = checkoutUrl;
+    },
+  });
+
+  const currentPlanLabel = useMemo(() => {
+    if (!billingStatus && billing) return billing.plan || null;
+    if (!billingStatus) return null;
+    if (billingStatus.trial_active) return "trial";
+    if (billingStatus.access_active) return billingStatus.plan;
+    return null;
+  }, [billingStatus, billing]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -196,7 +228,7 @@ export default function Layout() {
                   <Button
                     className="bg-teal-600 hover:bg-teal-700 text-white"
                     variant="default"
-                    onClick={() => navigate("/planos")}
+                    onClick={() => setPlansOpen(true)}
                   >
                     Ver planos
                   </Button>
@@ -207,6 +239,109 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Plans modal */}
+      <Dialog open={plansOpen} onOpenChange={setPlansOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Planos e assinatura</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Card className="border-slate-100 bg-slate-50">
+              <CardContent className="p-4">
+                <div className="text-sm text-slate-600">
+                  {billingStatus?.trial_active
+                    ? `Você está em teste grátis. Termina em ${billingStatus.trial_days_left} dia(s).`
+                    : billingStatus?.access_active
+                      ? `Plano ativo: ${billingStatus.plan}`
+                      : "Você não possui acesso ativo. Assine para liberar recursos."}
+                </div>
+                {billingStatus?.trial_ends_at ? (
+                  <div className="text-xs text-slate-500 mt-1">
+                    Termina em{" "}
+                    {new Date(billingStatus.trial_ends_at).toLocaleDateString("pt-BR")}
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {(billingPlans?.plans || []).map((p) => {
+                const isTrial = currentPlanLabel === "trial";
+                const isActive =
+                  billingStatus?.access_active &&
+                  billingStatus?.plan &&
+                  billingStatus.plan === p.id;
+
+                const label =
+                  p.id === "monthly"
+                    ? "Mensal"
+                    : p.id === "quarterly"
+                      ? "Trimestral"
+                      : p.id === "yearly"
+                        ? "Anual"
+                        : p.id;
+
+                const amountBRL = (Number(p.amount) || 0).toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                });
+
+                const btnDisabled = subscribeMutation.isPending || isActive;
+                const ctaText = isActive ? "Plano ativo" : `Assinar ${label}`;
+
+                return (
+                  <Card
+                    key={p.id}
+                    className={`border-slate-100 shadow-sm ${p.id === "monthly" ? "bg-white" : ""} ${
+                      p.id === "quarterly" ? "border-teal-100" : ""
+                    }`}
+                  >
+                    <CardContent className="p-5 space-y-2">
+                      <div className="font-semibold text-slate-900">{label}</div>
+                      <div className="text-3xl font-extrabold text-slate-900">{amountBRL}</div>
+                      <div className="text-xs text-slate-500">
+                        {p.id === "monthly" ? "por mês" : p.id === "quarterly" ? "a cada 3 meses" : "por ano"}
+                      </div>
+                      <Button
+                        className={`w-full ${
+                          p.id === "monthly"
+                            ? "bg-teal-600 hover:bg-teal-700"
+                            : p.id === "quarterly"
+                              ? "bg-teal-600 hover:bg-teal-700"
+                              : "bg-slate-900 hover:bg-slate-800"
+                        } text-white`}
+                        onClick={() => subscribeMutation.mutate(p.id)}
+                        disabled={btnDisabled}
+                      >
+                        {subscribeMutation.isPending ? "Processando..." : ctaText}
+                      </Button>
+                      {isTrial && p.id === billingStatus?.plan ? (
+                        <div className="text-[11px] text-slate-500">Atualiza após o trial.</div>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-200"
+                onClick={async () => {
+                  await api.billing.refresh();
+                  await refresh();
+                }}
+              >
+                Atualizar status
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
