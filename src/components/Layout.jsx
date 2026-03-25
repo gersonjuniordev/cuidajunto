@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Calendar, CheckSquare, Pill, FileText, 
   Baby, Menu, X, LogOut, MessageCircle
@@ -22,6 +22,7 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { logout, user } = useAuth();
 
@@ -195,7 +196,7 @@ export default function Layout() {
                   <Button
                     className="bg-teal-600 hover:bg-teal-700 text-white"
                     variant="default"
-                    onClick={() => (window.location.href = "/planos")}
+                    onClick={() => navigate("/planos")}
                   >
                     Ver planos
                   </Button>

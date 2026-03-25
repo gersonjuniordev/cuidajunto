@@ -59,6 +59,7 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      <Route path="/planos" element={<LandingV5 />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/Dashboard" replace />} />
         <Route path="/Dashboard" element={<Dashboard />} />
@@ -69,7 +70,6 @@ const AuthenticatedApp = () => {
         <Route path="/Criancas" element={<Criancas />} />
         <Route path="/Chat" element={<Chat />} />
         <Route path="/EntrarPorCodigo" element={<EntrarPorCodigo />} />
-        <Route path="/planos" element={<LandingV5 />} />
         <Route path="/login" element={<Navigate to="/Dashboard" replace />} />
         <Route path="/register" element={<Navigate to="/Dashboard" replace />} />
       </Route>
