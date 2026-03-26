@@ -120,12 +120,34 @@ async function mercadoPagoRequest(endpoint, { method = "GET", body } = {}) {
   return json;
 }
 
+const envOrigins = String(process.env.WEB_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "https://cuidajunto.netlify.app",
-  process.env.WEB_ORIGIN,
-].filter(Boolean);
+  ...envOrigins,
+];
+
+function normalizeOrigin(origin = "") {
+  return String(origin).trim().replace(/\/$/, "").toLowerCase();
+}
+
+function isAllowedOrigin(origin) {
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return false;
+
+  const exactMatch = allowedOrigins.some((candidate) => normalizeOrigin(candidate) === normalized);
+  if (exactMatch) return true;
+
+  // Permite previews/dominios de deploy do Netlify.
+  if (normalized.endsWith(".netlify.app")) return true;
+
+  return false;
+}
 
 function pickDefined(obj) {
   const out = {};
@@ -465,7 +487,7 @@ app.use(
   cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+      if (isAllowedOrigin(origin)) return cb(null, true);
       return cb(new Error(`CORS blocked origin: ${origin}`));
     },
     credentials: false,
@@ -473,9 +495,17 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.options("*", cors());
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+
+app.use((err, _req, res, next) => {
+  if (err?.message?.startsWith("CORS blocked origin:")) {
+    return res.status(403).json({ error: "CORS origin blocked" });
+  }
+  return next(err);
+});
 
 const upload = multer({
   dest: path.join(__dirname, "..", "uploads"),
