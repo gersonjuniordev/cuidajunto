@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Calendar, CheckSquare, Pill, FileText, 
-  Baby, Menu, X, LogOut, MessageCircle
+  Baby, Menu, X, LogOut, MessageCircle, User
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const navItems = [
   { path: "/Documentos", icon: FileText, label: "Documentos" },
   { path: "/Criancas", icon: Baby, label: "Crianças" },
   { path: "/Chat", icon: MessageCircle, label: "Chat" },
+  { path: "/Perfil", icon: User, label: "Perfil" },
 ];
 
 export default function Layout() {

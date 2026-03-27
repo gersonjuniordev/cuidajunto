@@ -13,6 +13,7 @@ import Medicamentos from './pages/Medicamentos';
 import Documentos from './pages/Documentos';
 import Criancas from './pages/Criancas';
 import Chat from './pages/Chat';
+import Perfil from './pages/Perfil';
 import EntrarPorCodigo from './pages/EntrarPorCodigo';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
         <Route path="/Documentos" element={<Documentos />} />
         <Route path="/Criancas" element={<Criancas />} />
         <Route path="/Chat" element={<Chat />} />
+        <Route path="/Perfil" element={<Perfil />} />
         <Route path="/EntrarPorCodigo" element={<EntrarPorCodigo />} />
         <Route path="/login" element={<Navigate to="/Dashboard" replace />} />
         <Route path="/register" element={<Navigate to="/Dashboard" replace />} />

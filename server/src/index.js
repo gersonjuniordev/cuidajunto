@@ -525,8 +525,46 @@ app.get("/api/me", async (_req, res) => {
     email: user.email,
     full_name: user.name,
     name: user.name,
+    avatar_url: user.avatarUrl || null,
     billing: billingStateOut(user),
   });
+});
+
+// ---- PROFILE ----
+// Atualiza dados do perfil (nome e avatar) do usuário autenticado
+app.put("/api/me", async (req, res) => {
+  try {
+    const user = await authUserFromRequest(req);
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+    const nameRaw = typeof req.body?.name === "string" ? req.body.name.trim() : undefined;
+    const name = nameRaw !== undefined ? (nameRaw === "" ? null : nameRaw) : undefined;
+
+    const avatarRaw =
+      typeof req.body?.avatar_url === "string" ? req.body.avatar_url.trim() : undefined;
+    const avatar_url = avatarRaw !== undefined ? (avatarRaw === "" ? null : avatarRaw) : undefined;
+
+    // Mantém valores se vierem undefined (evita apagar sem querer).
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...(name !== undefined ? { name } : {}),
+        ...(avatar_url !== undefined ? { avatarUrl: avatar_url || null } : {}),
+      },
+    });
+
+    return res.json({
+      id: updated.id,
+      email: updated.email,
+      full_name: updated.name,
+      name: updated.name,
+      avatar_url: updated.avatarUrl || null,
+      billing: billingStateOut(updated),
+    });
+  } catch (e) {
+    console.error("update /api/me error:", e);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
 });
 
 app.post("/api/auth/register", async (req, res) => {
