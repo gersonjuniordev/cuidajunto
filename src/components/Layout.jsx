@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Calendar, CheckSquare, Pill, FileText, 
-  Baby, Menu, X, LogOut, MessageCircle, User
+  Baby, Menu, X, LogOut, MessageCircle, User, ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,25 @@ export default function Layout() {
   const { logout, user, refresh } = useAuth();
 
   const billing = user?.billing;
+  const accessBlocked = !!billing && !billing.access_active;
+
+  useEffect(() => {
+    const trialEndsAt = billing?.trial_ends_at;
+    if (!trialEndsAt) return;
+    if (!billing?.trial_active) return;
+
+    const endMs = new Date(trialEndsAt).getTime();
+    const msUntil = endMs - Date.now();
+    if (!Number.isFinite(msUntil) || msUntil <= 0) {
+      refresh().catch(() => {});
+      return;
+    }
+
+    // Evita timeouts gigantescos; agenda um refresh próximo do fim.
+    const timeoutMs = Math.min(msUntil, 60 * 60 * 1000);
+    const t = setTimeout(() => refresh().catch(() => {}), timeoutMs);
+    return () => clearTimeout(t);
+  }, [billing?.trial_ends_at, billing?.trial_active, refresh, user?.id]);
 
   const trialBadge = (() => {
     if (!billing) return null;
@@ -237,7 +256,47 @@ export default function Layout() {
               </Card>
             </div>
           ) : null}
-          <Outlet />
+          {accessBlocked ? (
+            <Card className="border-slate-100 bg-white shadow-sm">
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-teal-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-base font-semibold text-slate-900">
+                      {billing?.plan === "trial" ? "Seu teste grátis expirou" : "Assinatura necessária"}
+                    </div>
+                    <div className="text-sm text-slate-500 mt-1">
+                      {billing?.plan === "trial"
+                        ? "Para continuar usando o CuidaJunto, contrate um dos planos abaixo."
+                        : "Ative um plano para liberar o acesso ao sistema."}
+                    </div>
+                    {billing?.trial_ends_at ? (
+                      <div className="text-xs text-slate-400 mt-2">
+                        Expirou em{" "}
+                        {new Date(billing.trial_ends_at).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
+                  <Button
+                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                    onClick={() => setPlansOpen(true)}
+                  >
+                    Contratar plano
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </main>
 

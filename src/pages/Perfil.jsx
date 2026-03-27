@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { api } from "@/api/client";
+import { api, API_BASE_URL } from "@/api/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useMutation } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +27,15 @@ function planLabel(planId) {
   return id || "trial";
 }
 
+function resolveFileUrl(maybeUrl) {
+  const v = String(maybeUrl || "").trim();
+  if (!v) return null;
+  if (v.startsWith("http://") || v.startsWith("https://")) return v;
+  const base = String(API_BASE_URL || "").replace(/\/$/, "");
+  if (v.startsWith("/")) return `${base}${v}`;
+  return `${base}/${v}`;
+}
+
 export default function Perfil() {
   const { user, refresh } = useAuth();
 
@@ -38,9 +47,9 @@ export default function Perfil() {
   useEffect(() => {
     setName(user?.name || "");
     setSelectedFile(null);
-    setAvatarPreviewUrl(user?.avatar_url || null);
+    setAvatarPreviewUrl(resolveFileUrl(user?.avatar_url));
     setError(null);
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.name, user?.avatar_url]);
 
   const billing = user?.billing;
   const planText = useMemo(() => {
@@ -92,6 +101,13 @@ export default function Perfil() {
     const url = URL.createObjectURL(file);
     setAvatarPreviewUrl(url);
   };
+
+  // Evita "vazamento" de URLs temporárias do navegador.
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl && selectedFile) URL.revokeObjectURL(avatarPreviewUrl);
+    };
+  }, [avatarPreviewUrl, selectedFile]);
 
   return (
     <div className="space-y-6">

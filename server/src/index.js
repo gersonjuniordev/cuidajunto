@@ -213,8 +213,11 @@ function billingStateOut(user) {
   const subscriptionEndsAt = user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt) : null;
 
   const trialActive = !!trialEndsAt && trialEndsAt > now;
-  const subscriptionActive = !!subscriptionEndsAt && subscriptionEndsAt > now;
-  const accessActive = trialActive || subscriptionActive || user?.billingStatus === "active";
+  // Segurança: nunca liberar acesso apenas por `subscriptionEndsAt`.
+  // O acesso por assinatura só deve valer quando o usuário NÃO estiver em "pending_payment".
+  const subscriptionActive =
+    user?.billingStatus !== "pending_payment" && !!subscriptionEndsAt && subscriptionEndsAt > now;
+  const accessActive = trialActive || subscriptionActive;
 
   const daysLeftTrial = trialActive ? Math.ceil((trialEndsAt - now) / (1000 * 60 * 60 * 24)) : 0;
 
@@ -717,7 +720,9 @@ app.post("/api/billing/refresh", async (req, res) => {
     if (!user.mercadoPagoPreapprovalId) {
       return res.json({ refreshed: false, billing: billingStateOut(user) });
     }
-    await syncUserFromPreapproval(user.mercadoPagoPreapprovalId);
+    // Não ativa acesso só por "authorized" do preapproval durante refresh.
+    // A ativação deve ocorrer via webhook de pagamento efetivo.
+    await syncUserFromPreapproval(user.mercadoPagoPreapprovalId, { allowActivate: false });
     const updated = await prisma.user.findUnique({ where: { id: user.id } });
     return res.json({ refreshed: true, billing: billingStateOut(updated) });
   } catch (e) {
@@ -726,27 +731,35 @@ app.post("/api/billing/refresh", async (req, res) => {
   }
 });
 
-async function syncUserFromPreapproval(preapprovalId) {
+async function syncUserFromPreapproval(preapprovalId, { allowActivate = false } = {}) {
   if (!preapprovalId) return null;
   const sub = await mercadoPagoRequest(`/preapproval/${preapprovalId}`);
   const userId = sub?.external_reference || null;
   if (!userId) return sub;
 
   let billingStatus = "pending_payment";
-  if (sub?.status === "authorized") billingStatus = "active";
+  if (sub?.status === "authorized") billingStatus = allowActivate ? "active" : "pending_payment";
   if (sub?.status === "cancelled") billingStatus = "cancelled";
   if (sub?.status === "paused") billingStatus = "paused";
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return sub;
 
-  let subscriptionEndsAt = user.subscriptionEndsAt;
-  if (sub?.next_payment_date) {
-    subscriptionEndsAt = new Date(sub.next_payment_date);
-  } else if (sub?.status === "authorized") {
-    // fallback aproximado quando o MP não devolve next_payment_date
-    const plan = BILLING_PLANS[user.billingPlan] || BILLING_PLANS.monthly;
-    subscriptionEndsAt = addMonths(new Date(), plan.frequency);
+  // Importante:
+  // O front considera `subscriptionEndsAt` para liberar acesso. Então, quando o
+  // usuário ainda NÃO pagou (ex.: saiu do checkout), não devemos setar
+  // subscriptionEndsAt, mesmo que o preapproval venha como "authorized".
+  let subscriptionEndsAt = null;
+  const shouldComputeEndsAt = billingStatus === "active" || billingStatus === "cancelled" || billingStatus === "paused";
+
+  if (shouldComputeEndsAt) {
+    if (sub?.next_payment_date) {
+      subscriptionEndsAt = new Date(sub.next_payment_date);
+    } else if (sub?.status === "authorized") {
+      // fallback aproximado quando o MP não devolve next_payment_date
+      const plan = BILLING_PLANS[user.billingPlan] || BILLING_PLANS.monthly;
+      subscriptionEndsAt = addMonths(new Date(), plan.frequency);
+    }
   }
 
   await prisma.user.update({
@@ -773,7 +786,14 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
       topic === "subscription_preapproval" ||
       topic === "subscription_authorized_payment"
     ) {
-      await syncUserFromPreapproval(String(dataId || ""));
+      const allowActivate = topic === "subscription_authorized_payment";
+      const sub = await syncUserFromPreapproval(String(dataId || ""), { allowActivate });
+      console.log("mercadopago webhook:", {
+        topic,
+        preapprovalId: dataId ? String(dataId) : null,
+        mpStatus: sub?.status || null,
+        allowActivate,
+      });
     }
 
     res.status(204).end();
